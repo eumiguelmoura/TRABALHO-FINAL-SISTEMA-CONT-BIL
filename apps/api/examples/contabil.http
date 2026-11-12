@@ -1,0 +1,54 @@
+@baseUrl = http://localhost:8182/api
+@token = COLE_O_TOKEN_RECEBIDO_NO_LOGIN
+
+### Saúde
+GET {{baseUrl}}/health
+Accept: application/json
+
+### Login — use o e-mail e a senha definidos no arquivo .env
+POST {{baseUrl}}/auth/login
+Accept: application/json
+Content-Type: application/json
+
+{"username":"admin@contabil.local","password":"SUA_SENHA_DEFINIDA_NO_ENV"}
+
+### Listar notas
+GET {{baseUrl}}/invoices
+Accept: application/json
+Authorization: Bearer {{token}}
+
+### Criar nota
+POST {{baseUrl}}/invoices
+Accept: application/json
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{"issue_date":"2026-11-12","supplier":"Fornecedor Exemplo","number":"123","city":"Guarapuava","state":"PR","icms_base":"30.00","icms_total":"3.60","ipi_total":"1.50","gross_total":"30.00","net_total":"31.50","items":[{"sku":"SKU-1","description":"Produto de teste","cfop":"1102","quantity":"3","unit_price":"10.00","icms_base":"30.00","icms_rate":"12.0000","ipi_rate":"5.0000"}]}
+
+### Notas pendentes
+GET {{baseUrl}}/invoices?pending_only=1
+Authorization: Bearer {{token}}
+Accept: application/json
+
+### Apurar notas (substitua pelo ID efetivo)
+POST {{baseUrl}}/tax-assessments
+Authorization: Bearer {{token}}
+Content-Type: application/json
+Accept: application/json
+
+{"name":"Apuração de teste","invoice_ids":[1]}
+
+### Histórico de apurações
+GET {{baseUrl}}/tax-assessments
+Authorization: Bearer {{token}}
+Accept: application/json
+
+### Fornecedores
+GET {{baseUrl}}/suppliers
+Authorization: Bearer {{token}}
+Accept: application/json
+
+### Catálogo de produtos
+GET {{baseUrl}}/catalog-products
+Authorization: Bearer {{token}}
+Accept: application/json

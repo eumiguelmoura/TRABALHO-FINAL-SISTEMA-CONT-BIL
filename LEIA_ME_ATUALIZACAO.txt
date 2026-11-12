@@ -1,0 +1,37 @@
+ATUALIZAÇÃO: ENTRADA DE NOTAS / UFs / ICMS / GRAVAÇÃO
+===================================================
+
+1. NÃO EXCLUA sua pasta atual nem o banco de dados.
+2. Extraia o conteúdo deste ZIP DIRETAMENTE DENTRO de
+   sistema_contabil_unificado, substituindo os arquivos.
+   Exemplo: .../sistema_contabil_unificado/apps/web/src/pages/admin/entradas/nova.vue
+3. No terminal do VS Code, dentro de sistema_contabil_unificado, execute:
+
+   docker compose exec php php artisan migrate --force
+   docker compose restart php nginx web
+   docker compose ps
+
+4. Recarregue http://localhost:9010 com Ctrl+F5.
+5. No formulário da nota, selecione UF, preencha todos os itens e clique
+   em "Copiar totais calculados". Se houver algum item inválido ou divergência,
+   clique em "Gravar nota" para exibir a explicação do problema.
+
+REGRAS DO LÍQUIDO:
+  - Padrão: Bruto + IPI por fora. ICMS destacado, sem abatimento.
+  - "Deduzir ICMS": desativado por padrão; só marque se aplicável.
+  - "Somar IPI": ativado por padrão; desmarque se o bruto já incluir o IPI.
+  - Totais do cabeçalho devem conferir com os itens para permitir gravação.
+  - Não são modelados outros componentes do total da NF, como frete e descontos.
+
+EXEMPLO:
+  Quantidade 3, unitário R$ 10, BC ICMS R$ 30, ICMS 12%, IPI 5%:
+  Bruto R$ 30,00; ICMS R$ 3,60; IPI R$ 1,50;
+  Líquido padrão R$ 31,50 (sem deduzir ICMS e adicionando IPI).
+
+OBSERVAÇÕES:
+  - Migração é ADITIVA: não apaga lançamentos ou usuários existentes.
+  - Não copie arquivos .env nem redefina sua senha.
+  - Não use "docker compose down -v".
+  - Mantenha os patches anteriores (Quasar --hostname e alias src).
+  - A API continua validando os totais, inclusive nas edições e pelo Flutter.
+  - Os valores destacados das entradas não são automaticamente imposto a pagar.

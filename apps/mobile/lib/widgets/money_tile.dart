@@ -1,0 +1,2 @@
+import 'package:flutter/material.dart';import '../core/utils/formatters.dart';
+class MoneyTile extends StatelessWidget {final String label;final double value;const MoneyTile({super.key,required this.label,required this.value});@override Widget build(BuildContext context)=>Card(child:Padding(padding:const EdgeInsets.all(16),child:Column(crossAxisAlignment:CrossAxisAlignment.start,children:[Text(label),const SizedBox(height:8),Text(Formatters.money(value),style:Theme.of(context).textTheme.titleLarge)])));}

@@ -1,0 +1,16 @@
+**/.env
+**/.env.*
+!**/.env.example
+
+**/vendor/
+**/node_modules/
+**/.dart_tool/
+**/.quasar/
+**/build/
+**/dist/
+
+**/*.log
+**/local.properties
+**/key.properties
+**/*.jks
+**/*.keystore

@@ -1,0 +1,20 @@
+body { background:#f4f7fb; color:#18283d; font-family: 'Roboto', sans-serif; }
+.app-header{background:linear-gradient(120deg,#153e69,#0d6c91);}
+.page-wrap{max-width:1400px;margin:0 auto;}
+.eyebrow{font-size:0.75rem;letter-spacing:0.15em;font-weight:750;color:#2e7392;margin-bottom:5px;}
+.page-title{font-size:clamp(1.55rem,3vw,2.25rem);font-weight:750;margin:0 0 12px;line-height:1.2;color:#1b3252;}
+.panel-card{border-radius:14px;overflow:hidden;}
+.login-bg{background:radial-gradient(circle at 80% 0%,#3375a0 0,#153e69 50%,#102d4c 100%);}
+.login-card{width:min(100%,450px);border-radius:18px;}
+.logo-mark{border-radius:16px;background:#e8f4ff;color:#236197;width:72px;height:72px;display:flex;align-items:center;justify-content:center;}
+.module-card{height:100%;border:1px solid #dde5ef;border-radius:16px;transition:transform .2s,box-shadow .2s;}
+.module-card:hover{transform:translateY(-4px);box-shadow:0 12px 32px #12365b1a;}
+.module-card p{min-height:60px;}
+.module-icon{border-radius:14px;width:74px;height:74px;display:flex;align-items:center;justify-content:center;}
+.menu-active{color:#166196!important;background:#e9f4fc;border-radius:9px;font-weight:700;}
+.metric{padding:21px;border-radius:12px;background:#f1f6fa;height:100%;}
+.opacity-70{opacity:.75;}
+
+/* A tradução automática é bloqueada por lang=pt-BR e translate=no no HTML. */
+/* Os nomes dos campos devem ficar inteiros acima dos inputs. */
+.field-label { display: block; margin-bottom: 6px; white-space: normal; }

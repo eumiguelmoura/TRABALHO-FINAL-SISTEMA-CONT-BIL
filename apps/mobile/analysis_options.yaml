@@ -1,0 +1,27 @@
+include: package:flutter_lints/flutter.yaml
+
+analyzer:
+  errors:
+    # Deixa avisos de TODO visíveis no editor sem quebrar o build.
+    todo: ignore
+  exclude:
+    - "**/*.g.dart"
+    - "**/*.freezed.dart"
+    - build/**
+    - android/**
+    - ios/**
+    - web/**
+    - linux/**
+
+linter:
+  rules:
+    # Boas práticas que valem a pena cobrar desde a primeira aula.
+    always_declare_return_types: true
+    avoid_print: true
+    prefer_const_constructors: true
+    prefer_const_declarations: true
+    prefer_final_locals: true
+    prefer_single_quotes: true
+    sort_child_properties_last: true
+    unnecessary_late: true
+    use_key_in_widget_constructors: true

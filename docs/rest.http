@@ -1,0 +1,56 @@
+@base = http://localhost:8182/api
+@token = COLE_TOKEN_AQUI
+
+### Disponibilidade
+GET {{base}}/health
+
+### Login
+POST {{base}}/auth/login
+Content-Type: application/json
+
+{"username":"admin@contabil.local","password":"SENHA_DO_SEU_ENV"}
+
+### Usuario autenticado
+GET {{base}}/auth/me
+Authorization: Bearer {{token}}
+
+### Fornecedores
+GET {{base}}/suppliers
+Authorization: Bearer {{token}}
+
+### Criar fornecedor
+POST {{base}}/suppliers
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{"name":"Fornecedor Exemplo","city":"Guarapuava","state":"PR"}
+
+### Nota de entrada (ICMS 3,60, IPI 1,50, líquido 24,90)
+POST {{base}}/invoices
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{"issue_date":"2026-11-12","supplier":"Fornecedor Exemplo","number":"123","city":"Guarapuava","state":"PR","icms_base":"30.00","icms_total":"3.60","ipi_total":"1.50","gross_total":"30.00","net_total":"24.90","items":[{"sku":"ABC123","description":"Produto exemplo","cfop":"1102","quantity":"3","unit_price":"10.00","icms_base":"30.00","icms_rate":"12","ipi_rate":"5"}]}
+
+### Listar notas
+GET {{base}}/invoices
+Authorization: Bearer {{token}}
+
+### Listar itens das notas
+GET {{base}}/invoice-items
+Authorization: Bearer {{token}}
+
+### Notas disponíveis para apuração
+GET {{base}}/invoices?pending_only=1
+Authorization: Bearer {{token}}
+
+### Criar apuração (use o ID retornado da nota)
+POST {{base}}/tax-assessments
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{"name":"Entradas Novembro 2026","invoice_ids":[1]}
+
+### Histórico de apurações
+GET {{base}}/tax-assessments
+Authorization: Bearer {{token}}

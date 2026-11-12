@@ -1,0 +1,1 @@
+class AppRoutes {static const login='/login',home='/inicio',invoices='/notas',invoiceNew='/notas/nova',assessments='/apuracoes';static String invoiceEdit(int id)=>'/notas/$id';static String assessmentDetail(int id)=>'/apuracoes/$id';}

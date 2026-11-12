@@ -1,0 +1,2 @@
+import 'api_client.dart';
+class AuthService {final ApiClient api;AuthService(this.api);Future<void> login(String username,String password) async {final data=await api.send('POST','auth/login',body:{'username':username,'password':password});await api.setToken('${data['token']}');}Future<void> logout()async{try{await api.send('POST','auth/logout');}finally{await api.clearToken();}}Future<bool> get isLoggedIn async=>(await api.token)!=null;}

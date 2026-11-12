@@ -1,0 +1,29 @@
+CORREÇÃO DE TEXTOS E RÓTULOS — SISTEMA CONTÁBIL
+================================================
+
+O erro "Não se trata de uma questão de..." NÃO faz parte do menu original;
+no código o item correto é "Início". A alteração vista no navegador
+é compatível com interferência de tradução automática.
+
+ALTERAÇÕES
+- Página HTML identificada como português brasileiro (pt-BR).
+- Meta tag de não tradução e tradução desativada nos contêineres das telas.
+- i18n do projeto configurado para pt-BR.
+- Item de menu correto "Início" e descrições completas.
+- Rótulos preservados acima das caixas de texto: Data de emissão,
+  Fornecedor, Número da nota, Cidade e Estado (UF).
+- Menu levemente ampliado para evitar quebra de nomes.
+
+COMO APLICAR
+1. Extraia este ZIP sobre a pasta sistema_contabil_unificado,
+   aceitando substituir os arquivos. Estrutura interna começa em apps/web/.
+2. NÃO apague nem substitua os arquivos .env e NÃO execute migrate/seed.
+3. No PowerShell, na pasta principal, execute:
+   docker compose restart web
+4. Atualize o Chrome com Ctrl+Shift+R, ou abra em janela anônima.
+5. Se os textos continuarem trocados, no Chrome clique no ícone de
+   tradução ao lado do endereço e selecione "Mostrar original".
+   Depois desative a tradução automática para localhost.
+
+IMPORTANTE
+Esta correção não modifica PHP, banco de dados, Laravel nem impostos.

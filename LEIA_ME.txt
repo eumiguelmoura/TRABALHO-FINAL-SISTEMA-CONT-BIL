@@ -1,0 +1,9 @@
+CORREÇÃO ES LINT - SISTEMA CONTÁBIL
+
+1. Mantenha o projeto existente e o banco MySQL.
+2. Extraia este ZIP sobre a pasta sistema_contabil_unificado, substituindo os arquivos Vue solicitados.
+3. Se o Quasar já estiver em execução, ele deve recarregar automaticamente.
+4. Confira os logs com: docker compose logs --tail=60 web
+5. Caso necessário: docker compose restart web
+
+Esta atualização corrige apenas 5 arquivos de frontend e não contém .env nem migrations.
