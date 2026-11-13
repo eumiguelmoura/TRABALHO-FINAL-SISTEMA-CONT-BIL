@@ -15,6 +15,7 @@ class StoreInvoiceRequest extends FormRequest {
         'ipi_total'=>['required','numeric','min:0'],
         'gross_total'=>['required','numeric','min:0.01'],
         'net_total'=>['required','numeric','min:0'],
+        'discount_total'=>['sometimes','numeric','min:0'],
         'deduct_icms'=>['sometimes','boolean'],
         'add_ipi_to_total'=>['sometimes','boolean'],
         'items'=>['required','array','min:1','max:100'],
@@ -26,5 +27,8 @@ class StoreInvoiceRequest extends FormRequest {
         'items.*.icms_base'=>['required','numeric','min:0'],
         'items.*.icms_rate'=>['required','numeric','between:0,100'],
         'items.*.ipi_rate'=>['required','numeric','between:0,100'],
+        'items.*.discount_mode'=>['sometimes',Rule::in(['manual','icms_includes_ipi'])],
+        'items.*.discount_amount'=>['sometimes','numeric','min:0'],
+        'items.*.ipi_base'=>['nullable','numeric','min:0'],
     ]; }
 }

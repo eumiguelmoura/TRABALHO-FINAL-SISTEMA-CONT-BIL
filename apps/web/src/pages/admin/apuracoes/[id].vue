@@ -10,6 +10,6 @@ import {Notify} from 'quasar'
 import {api} from 'src/boot/axios'
 import {money,dateBR} from 'src/utils/money'
 const route=useRoute(),entry=ref(null)
-const columns=[{name:'issue_date',label:'Emissão',field:r=>dateBR(r.issue_date),align:'left'},{name:'number',label:'Nota',field:'number',align:'left'},{name:'supplier',label:'Fornecedor',field:'supplier',align:'left'},{name:'gross_total',label:'Valor',field:r=>money(r.gross_total)},{name:'icms_total',label:'ICMS',field:r=>money(r.icms_total)},{name:'ipi_total',label:'IPI',field:r=>money(r.ipi_total)}]
+const columns=[{name:'issue_date',label:'Emissão',field:r=>dateBR(r.issue_date),align:'left'},{name:'number',label:'Nota',field:'number',align:'left'},{name:'supplier',label:'Cliente',field:'supplier',align:'left'},{name:'gross_total',label:'Valor',field:r=>money(r.gross_total)},{name:'icms_total',label:'ICMS',field:r=>money(r.icms_total)},{name:'ipi_total',label:'IPI',field:r=>money(r.ipi_total)}]
 onMounted(async()=>{try{entry.value=(await api.get(`/tax-assessments/${route.params.id}`)).data}catch{Notify.create({type:'negative',message:'Apuração não encontrada'})}})
 </script>

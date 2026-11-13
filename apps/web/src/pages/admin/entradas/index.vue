@@ -1,8 +1,8 @@
 <template>
   <q-page class="page-wrap q-pa-lg">
     <div class="row items-center justify-between q-gutter-sm q-mb-md">
-      <div><div class="eyebrow">NOTAS FISCAIS</div><h1 class="page-title">Entradas de notas</h1></div>
-      <q-btn color="primary" icon="add" label="Nova entrada" to="/admin/entradas/nova" unelevated />
+      <div><div class="eyebrow">NOTAS FISCAIS</div><h1 class="page-title">LANÇAMENTO DE NOTAS</h1></div>
+      <q-btn color="primary" icon="add" label="Novo lançamento" to="/admin/entradas/nova" unelevated />
     </div>
     <q-card flat bordered class="panel-card">
       <q-card-section class="row items-center justify-between">
@@ -30,7 +30,7 @@ const rows=ref([]),loading=ref(false)
 const columns=[
   {name:'issue_date',label:'Emissão',field:'issue_date',align:'left',sortable:true},
   {name:'number',label:'Número',field:'number',align:'left',sortable:true},
-  {name:'supplier',label:'Fornecedor',field:'supplier',align:'left',sortable:true},
+  {name:'supplier',label:'Cliente',field:'supplier',align:'left',sortable:true},
   {name:'gross_total',label:'Valor bruto',field:'gross_total',align:'right'},
   {name:'status',label:'Apuração',field:'status',align:'left'},
   {name:'actions',label:'',field:'id',align:'right'}]

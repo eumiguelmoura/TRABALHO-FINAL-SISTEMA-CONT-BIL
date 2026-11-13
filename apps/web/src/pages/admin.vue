@@ -10,7 +10,7 @@
       <q-list padding>
         <q-item-label header class="text-overline text-grey-6">NAVEGAÇÃO</q-item-label>
         <q-item clickable v-ripple to="/admin" exact active-class="menu-active"><q-item-section avatar><q-icon name="dashboard" /></q-item-section><q-item-section><span class="notranslate">Início</span></q-item-section></q-item>
-        <q-item clickable v-ripple to="/admin/entradas" active-class="menu-active"><q-item-section avatar><q-icon name="receipt_long" /></q-item-section><q-item-section><span class="notranslate">Entrada de notas</span></q-item-section></q-item>
+        <q-item clickable v-ripple to="/admin/entradas" active-class="menu-active"><q-item-section avatar><q-icon name="receipt_long" /></q-item-section><q-item-section><span class="notranslate">LANÇAMENTO DE NOTAS</span></q-item-section></q-item>
         <q-item clickable v-ripple to="/admin/apuracoes" active-class="menu-active"><q-item-section avatar><q-icon name="calculate" /></q-item-section><q-item-section><span class="notranslate">Apuração de impostos</span></q-item-section></q-item>
         <q-item clickable v-ripple to="/admin/apuracoes/historico" active-class="menu-active"><q-item-section avatar><q-icon name="history" /></q-item-section><q-item-section><span class="notranslate">Impostos apurados</span></q-item-section></q-item>
       </q-list>

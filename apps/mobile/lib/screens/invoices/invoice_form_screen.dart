@@ -29,6 +29,8 @@ class _InvoiceFormScreenState extends State<InvoiceFormScreen> {
   final supplier = TextEditingController();
   final number = TextEditingController();
   final city = TextEditingController();
+  final noteIpi = TextEditingController();
+  final noteTotal = TextEditingController();
   String state = 'PR';
   final List<_ItemDraft> items = [];
   DateTime date = DateTime.now();
@@ -56,6 +58,8 @@ class _InvoiceFormScreenState extends State<InvoiceFormScreen> {
       date = invoice.issueDate;
       deductIcms = invoice.deductIcms;
       addIpiToTotal = invoice.addIpiToTotal;
+      noteIpi.text = invoice.ipiTotal.toStringAsFixed(2);
+      noteTotal.text = invoice.netTotal.toStringAsFixed(2);
       for (final item in items) { item.dispose(); }
       items.clear();
       items.addAll(invoice.items.map(_ItemDraft.fromInvoiceItem));
@@ -73,6 +77,8 @@ class _InvoiceFormScreenState extends State<InvoiceFormScreen> {
     supplier.dispose();
     number.dispose();
     city.dispose();
+    noteIpi.dispose();
+    noteTotal.dispose();
     for (final item in items) { item.dispose(); }
     super.dispose();
   }
@@ -96,7 +102,13 @@ class _InvoiceFormScreenState extends State<InvoiceFormScreen> {
   double val(TextEditingController controller) =>
       double.tryParse(controller.text.replaceAll(',', '.')) ?? 0;
 
-  InvoiceItem item(_ItemDraft draft) => InvoiceItem(
+  InvoiceItem item(_ItemDraft draft) {
+    final automatic = draft.autoDiscount ? inferDiscountFromIcmsBase(
+      gross: ((val(draft.quantity) * val(draft.unitPrice)) * 100).round() / 100,
+      icmsBase: val(draft.icmsBase),
+      ipiRate: val(draft.ipiRate),
+    ) : null;
+    return InvoiceItem(
         sku: draft.sku.text.trim(),
         description: draft.description.text.trim(),
         cfop: draft.cfop.text.trim(),
@@ -105,10 +117,46 @@ class _InvoiceFormScreenState extends State<InvoiceFormScreen> {
         icmsBase: val(draft.icmsBase),
         icmsRate: val(draft.icmsRate),
         ipiRate: val(draft.ipiRate),
+        discountAmount: automatic?.discount ?? val(draft.discountAmount),
+        ipiBase: draft.autoDiscount ? null : draft.ipiBase.text.trim().isEmpty ? null : val(draft.ipiBase),
+        discountMode: draft.autoDiscount ? 'icms_includes_ipi' : 'manual',
       );
+  }
+
+  void distributeDiscount() {
+    if (noteIpi.text.trim().isEmpty || noteTotal.text.trim().isEmpty) {
+      setState(() => error = 'Informe o valor do IPI e o total da nota para ratear o desconto.');
+      return;
+    }
+    final grossCents = items.map((draft) => (item(draft).gross * 100).round()).toList();
+    final gross = grossCents.fold<int>(0, (sum, value) => sum + value);
+    final noteIpiCents = (val(noteIpi) * 100).round();
+    final noteNetCents = (val(noteTotal) * 100).round();
+    final icmsCents = (items.fold<double>(0, (sum, draft) => sum + item(draft).icms) * 100).round();
+    final discount = gross + (addIpiToTotal ? noteIpiCents : 0) - (deductIcms ? icmsCents : 0) - noteNetCents;
+    if (gross <= 0 || discount < 0 || discount > gross) {
+      setState(() => error = 'O desconto calculado é inválido. Confira o IPI, total da nota, frete e demais valores.');
+      return;
+    }
+    final amounts = proportionalDiscountCents(grossCents, discount);
+    for (var index=0; index<items.length; index++) {
+      items[index].autoDiscount = false; // rateio usa total da nota, não BC ICMS
+      items[index].discountAmount.text = (amounts[index]/100).toStringAsFixed(2);
+      items[index].ipiBase.clear();
+    }
+    setState(() => error = null);
+  }
 
   Future<void> save() async {
     if (!form.currentState!.validate()) return;
+    if (items.any((draft) => draft.autoDiscount && inferDiscountFromIcmsBase(
+      gross: ((val(draft.quantity) * val(draft.unitPrice)) * 100).round() / 100,
+      icmsBase: val(draft.icmsBase),
+      ipiRate: val(draft.ipiRate),
+    ) == null)) {
+      setState(() => error = 'BC ICMS não é igual a produto líquido + IPI em algum item. Desative o modo automático e use o rateio pelo total da nota.');
+      return;
+    }
     final mapped = items.map(item).toList();
     if (mapped.any((entry) => entry.icmsRate > 100 || entry.ipiRate > 100)) {
       setState(() => error = 'As alíquotas ICMS e IPI devem estar entre 0 e 100%.');
@@ -130,6 +178,14 @@ class _InvoiceFormScreenState extends State<InvoiceFormScreen> {
       deductIcms: deductIcms,
       addIpiToTotal: addIpiToTotal,
     );
+    if (noteIpi.text.trim().isNotEmpty && (invoice.ipiTotal - val(noteIpi)).abs() > 0.001) {
+      setState(() => error = 'IPI dos itens não confere com o IPI informado na nota.');
+      return;
+    }
+    if (noteTotal.text.trim().isNotEmpty && (invoice.netTotal - val(noteTotal)).abs() > 0.001) {
+      setState(() => error = 'Líquido dos itens não confere com o total informado na nota.');
+      return;
+    }
     setState(() { saving = true; error = null; });
     try {
       if (widget.id == null) {
@@ -177,7 +233,7 @@ class _InvoiceFormScreenState extends State<InvoiceFormScreen> {
                           label: Text('Data de emissão: ${Formatters.date(date)}'),
                         ),
                         const SizedBox(height: 12),
-                        input(supplier, 'Fornecedor *'),
+                        input(supplier, 'Cliente *'),
                         const SizedBox(height: 12),
                         input(number, 'Número da nota *'),
                         const SizedBox(height: 12),
@@ -223,6 +279,26 @@ class _InvoiceFormScreenState extends State<InvoiceFormScreen> {
                                 const SizedBox(height: 8),
                                 input(draft.unitPrice, 'Valor unitário *', numeric: true, validate: Validators.positive),
                                 const SizedBox(height: 8),
+                                SwitchListTile(
+                                  title: const Text('Calcular desconto e IPI automaticamente pela BC ICMS'),
+                                  subtitle: const Text('Ative somente se BC ICMS = produto após desconto + IPI, sem outras parcelas.'),
+                                  value: draft.autoDiscount,
+                                  onChanged: (value) => setState(() => draft.autoDiscount = value),
+                                ),
+                                if (!draft.autoDiscount)
+                                  input(draft.discountAmount, 'Desconto do item (R$)', numeric: true, validate: Validators.nonnegative)
+                                else Text('Desconto automático: ${Formatters.money(values.discountAmount)}'),
+                                const SizedBox(height: 8),
+                                Text('BC IPI calculada: ${Formatters.money(values.calculatedIpiBase)}'),
+                                if (draft.autoDiscount && inferDiscountFromIcmsBase(
+                                    gross: values.gross, icmsBase: values.icmsBase, ipiRate: values.ipiRate) == null)
+                                  const Text('A BC ICMS ainda não permite calcular o desconto. Confira os campos ou desative o modo automático.', style: TextStyle(color: Colors.deepOrange)),
+                                if (!draft.autoDiscount) ...[
+                                  const SizedBox(height: 8),
+                                  input(draft.ipiBase, 'BC IPI diferente (opcional)', numeric: true, validate: (value) =>
+                                      value == null || value.isEmpty ? null : Validators.nonnegative(value)),
+                                ],
+                                const SizedBox(height: 8),
                                 input(draft.icmsBase, 'Base ICMS *', numeric: true, validate: Validators.nonnegative),
                                 const SizedBox(height: 8),
                                 input(draft.icmsRate, 'Alíquota ICMS (%) *', numeric: true, validate: Validators.nonnegative),
@@ -231,6 +307,7 @@ class _InvoiceFormScreenState extends State<InvoiceFormScreen> {
                                 const SizedBox(height: 8),
                                 Text('Bruto: ${Formatters.money(values.gross)}'),
                                 Text('ICMS: ${Formatters.money(values.icms)}'),
+                                Text('Desconto: ${Formatters.money(values.discountAmount)}'),
                                 Text('IPI: ${Formatters.money(values.ipi)}'),
                                 Text('Líquido: ${Formatters.money(values.netWith(deductIcms: deductIcms, addIpiToTotal: addIpiToTotal))}'),
                               ]),
@@ -242,6 +319,16 @@ class _InvoiceFormScreenState extends State<InvoiceFormScreen> {
                           icon: const Icon(Icons.add),
                           label: const Text('Adicionar produto'),
                         ),
+                        const SizedBox(height: 16),
+                        Text('Desconto proporcional por item', style: Theme.of(context).textTheme.titleMedium),
+                        const SizedBox(height: 8),
+                        Text('Sem frete ou outros acréscimos: desconto = bruto + IPI − total da nota. Confira os valores no documento.'),
+                        const SizedBox(height: 8),
+                        input(noteIpi, 'IPI total destacado na nota (R$)', numeric: true, validate: (_) => null),
+                        const SizedBox(height: 8),
+                        input(noteTotal, 'Total líquido da nota (R$)', numeric: true, validate: (_) => null),
+                        const SizedBox(height: 8),
+                        OutlinedButton.icon(onPressed: distributeDiscount, icon: const Icon(Icons.percent), label: const Text('Calcular desconto por item')),
                         const SizedBox(height: 16),
                         Text('Composição do total líquido', style: Theme.of(context).textTheme.titleMedium),
                         SwitchListTile(
@@ -272,6 +359,7 @@ class _InvoiceFormScreenState extends State<InvoiceFormScreen> {
                             Text('ICMS: ${Formatters.money(invoice.icmsTotal)}'),
                             Text('IPI: ${Formatters.money(invoice.ipiTotal)}'),
                             Text('Total bruto: ${Formatters.money(invoice.grossTotal)}'),
+                            Text('Desconto total: ${Formatters.money(invoice.discountTotal)}'),
                             Text('Total líquido: ${Formatters.money(invoice.netTotal)}'),
                           ]);
                         }),
@@ -298,6 +386,9 @@ class _ItemDraft {
   final icmsBase = TextEditingController(text: '0.00');
   final icmsRate = TextEditingController(text: '0');
   final ipiRate = TextEditingController(text: '0');
+  final discountAmount = TextEditingController(text: '0.00');
+  final ipiBase = TextEditingController();
+  bool autoDiscount = true;
 
   _ItemDraft();
 
@@ -307,16 +398,41 @@ class _ItemDraft {
     draft.description.text = item.description;
     draft.cfop.text = item.cfop;
     draft.quantity.text = item.quantity.toString();
-    draft.unitPrice.text = item.unitPrice.toStringAsFixed(2);
+    draft.unitPrice.text = item.unitPrice.toStringAsFixed(4);
     draft.icmsBase.text = item.icmsBase.toStringAsFixed(2);
     draft.icmsRate.text = item.icmsRate.toString();
     draft.ipiRate.text = item.ipiRate.toString();
+    draft.discountAmount.text = item.discountAmount.toStringAsFixed(2);
+    draft.autoDiscount = false; // não reestima valores históricos ao editar
+    final automaticBase = item.gross - item.discountAmount;
+    draft.ipiBase.text = item.ipiBase == null || (item.ipiBase! - automaticBase).abs() < 0.005 ? '' : item.ipiBase!.toStringAsFixed(2);
     return draft;
   }
 
   void dispose() {
-    for (final controller in [sku, description, cfop, quantity, unitPrice, icmsBase, icmsRate, ipiRate]) {
+    for (final controller in [sku, description, cfop, quantity, unitPrice, icmsBase, icmsRate, ipiRate, discountAmount, ipiBase]) {
       controller.dispose();
     }
   }
+}
+
+// Mesmo critério de maior resíduo usado no Laravel e no Quasar.
+List<int> proportionalDiscountCents(List<int> grossCents, int discountCents) {
+  final total = grossCents.fold<int>(0, (sum, value) => sum + value);
+  if (total <= 0 || discountCents < 0 || discountCents > total) {
+    throw ArgumentError('Desconto inválido');
+  }
+  final amounts = List<int>.generate(grossCents.length, (i) => grossCents[i] * discountCents ~/ total);
+  final order = List<int>.generate(grossCents.length, (i) => i);
+  order.sort((a,b) {
+    final first = grossCents[a] * discountCents % total;
+    final second = grossCents[b] * discountCents % total;
+    final comparison = second.compareTo(first);
+    return comparison != 0 ? comparison : a.compareTo(b);
+  });
+  final remaining = discountCents - amounts.fold<int>(0, (sum, v) => sum + v);
+  for (var i=0; i<remaining; i++) {
+    amounts[order[i]]++;
+  }
+  return amounts;
 }

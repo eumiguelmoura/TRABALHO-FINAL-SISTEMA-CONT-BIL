@@ -1,0 +1,23 @@
+CORREÇÃO: LANÇAMENTO DE NOTAS / CLIENTE
+
+O que muda
+- Início e menu: "LANÇAMENTO DE NOTAS".
+- Listagem: "LANÇAMENTO DE NOTAS" e botão "Novo lançamento".
+- Formulário: "Cliente *" e mensagem "Informe o cliente".
+- Visualização da nota e detalhe da apuração: coluna/rótulo "Cliente".
+- Flutter: nomenclatura visível equivalente.
+
+O que NÃO muda
+- URLs e rotas: permanecem /admin/entradas.
+- Campos internos/API: o atributo `supplier` é mantido para garantir compatibilidade com as notas existentes.
+- Não altera migrations, MySQL, cálculos fiscais, autenticação ou dados.
+- Alteração apenas de apresentação; não converte o módulo em um sistema fiscal de notas de saída.
+
+COMO INSTALAR
+1. Feche o editor nos arquivos que serão substituídos.
+2. Extraia este ZIP na pasta `sistema_contabil_unificado`, preservando as pastas e substituindo os arquivos.
+3. Na pasta do projeto, execute: docker compose restart web
+4. Atualize o navegador com Ctrl + Shift + R e abra http://localhost:9010
+5. Não precisa rodar migrate nem seed.
+
+Para publicar no GitHub depois: git add . && git commit -m "Renomeia entradas para lancamentos e fornecedor para cliente" && git push origin main

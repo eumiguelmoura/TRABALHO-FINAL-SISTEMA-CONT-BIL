@@ -92,4 +92,32 @@ class AccountingFlowTest extends TestCase
         $this->getJson("/api/invoices/{$id}")->assertNotFound();
         $this->postJson('/api/tax-assessments', ['name' => 'Indevida', 'invoice_ids' => [$id]])->assertUnprocessable();
     }
+    public function test_saves_real_xml_ipi_after_discounts(): void
+    {
+        Sanctum::actingAs(User::factory()->create());
+        $payload = $this->payload();
+        $payload['number'] = '384981';
+        $payload['gross_total'] = '759.03';
+        $payload['discount_total'] = '9.95';
+        $payload['net_total'] = '753.49';
+        $payload['ipi_total'] = '4.41';
+        $payload['icms_base'] = '753.49';
+        $payload['icms_total'] = '83.10';
+        $payload['items'] = [
+            ['sku'=>'607169','description'=>'Perfurador','cfop'=>'6106','quantity'=>'1','unit_price'=>'670.78',
+                'discount_mode'=>'icms_includes_ipi','icms_base'=>'661.99','icms_rate'=>'12','ipi_rate'=>'0'],
+            ['sku'=>'606964','description'=>'Broca 15','cfop'=>'6106','quantity'=>'1','unit_price'=>'34.31',
+                'discount_mode'=>'icms_includes_ipi','icms_base'=>'35.62','icms_rate'=>'4','ipi_rate'=>'5.2'],
+            ['sku'=>'606926','description'=>'Broca 20','cfop'=>'6106','quantity'=>'1','unit_price'=>'47.91',
+                'discount_mode'=>'icms_includes_ipi','icms_base'=>'49.74','icms_rate'=>'4','ipi_rate'=>'5.2'],
+            ['sku'=>'606674','description'=>'Extensão','cfop'=>'6106','quantity'=>'1','unit_price'=>'6.03',
+                'discount_mode'=>'icms_includes_ipi','icms_base'=>'6.14','icms_rate'=>'4','ipi_rate'=>'3.25'],
+        ];
+        $this->postJson('/api/invoices',$payload)->assertCreated()
+            ->assertJsonPath('items.1.ipi_base','33.86')
+            ->assertJsonPath('items.1.ipi_amount','1.76')
+            ->assertJsonPath('discount_total','9.95')
+            ->assertJsonPath('ipi_total','4.41')
+            ->assertJsonPath('net_total','753.49');
+    }
 }

@@ -4,7 +4,7 @@
       <q-btn flat icon="arrow_back" label="Voltar" to="/admin/entradas" />
       <div>
         <div class="eyebrow">CADASTRO</div>
-        <h1 class="page-title">{{ editingId ? 'Editar nota fiscal' : 'Nova entrada de nota fiscal' }}</h1>
+        <h1 class="page-title">{{ editingId ? 'Editar nota fiscal' : 'Novo lançamento de nota fiscal' }}</h1>
       </div>
     </div>
 
@@ -20,7 +20,7 @@
             <q-input id="issue_date" v-model="form.issue_date" outlined dense type="date" />
           </div>
           <div class="col-12 col-sm-5">
-            <label class="field-label notranslate" for="supplier">Fornecedor *</label>
+            <label class="field-label notranslate" for="supplier">Cliente *</label>
             <q-input id="supplier" v-model.trim="form.supplier" outlined dense maxlength="180" />
           </div>
           <div class="col-12 col-sm-4">
@@ -46,7 +46,7 @@
         <q-card-section class="row items-center justify-between q-gutter-sm">
           <div>
             <div class="text-h6">Produtos da nota</div>
-            <div class="text-caption text-grey-7">O ICMS é calculado por item, mas não reduz o total líquido automaticamente.</div>
+            <div class="text-caption text-grey-7">Desconto e IPI são calculados automaticamente em cada item quando a BC ICMS inclui o IPI. Sem digitar descontos.</div>
           </div>
           <q-btn outline color="primary" icon="add" label="Adicionar produto" @click="addItem" />
         </q-card-section>
@@ -75,7 +75,7 @@
             </div>
             <div class="col-12 col-sm-4 col-md-2">
               <label class="field-label notranslate">Valor unitário *</label>
-              <q-input v-model.number="item.unit_price" outlined dense type="number" min="0.01" max="99999999" step="0.01" />
+              <q-input v-model.number="item.unit_price" outlined dense type="number" min="0.0001" max="99999999" step="0.0001" />
             </div>
             <div class="col-12 col-sm-4 col-md-2">
               <label class="field-label notranslate">Total bruto do item</label>
@@ -92,6 +92,24 @@
             <div class="col-12 col-sm-4 col-md-2">
               <label class="field-label notranslate">ICMS calculado</label>
               <q-input outlined dense :model-value="money(calc(item).icms_amount)" readonly bg-color="grey-2" />
+            </div>
+            <div class="col-12">
+              <q-toggle v-model="item.auto_discount" color="primary" label="Calcular desconto e IPI automaticamente pela BC ICMS (IPI incluído na base)" />
+              <div class="text-caption text-grey-7 q-ml-md">Use quando BC ICMS = valor do produto após desconto + IPI, sem frete, seguro nem outras parcelas. Se não for o caso, desligue e utilize o rateio pelo total da NF.</div>
+              <q-banner v-if="item.auto_discount && calc(item).auto_discount_error" dense class="bg-orange-1 text-orange-10 q-mt-sm">{{ calc(item).auto_discount_error }}</q-banner>
+            </div>
+            <div class="col-12 col-sm-4 col-md-2">
+              <label class="field-label notranslate">Desconto {{ item.auto_discount ? 'automático' : 'do item' }} (R$)</label>
+              <q-input v-if="item.auto_discount" outlined dense :model-value="money(calc(item).discount_amount)" readonly bg-color="green-1" />
+              <q-input v-else v-model.number="item.discount_amount" outlined dense type="number" min="0" step="0.01" />
+            </div>
+            <div class="col-12 col-sm-4 col-md-2">
+              <label class="field-label notranslate">BC IPI utilizada</label>
+              <q-input outlined dense :model-value="money(calc(item).ipi_base)" readonly bg-color="grey-2" />
+            </div>
+            <div v-if="!item.auto_discount" class="col-12 col-sm-4 col-md-2">
+              <label class="field-label notranslate">BC IPI diferente (opcional)</label>
+              <q-input v-model.number="item.ipi_base" outlined dense type="number" min="0" step="0.01" clearable placeholder="Usar bruto − desconto" />
             </div>
             <div class="col-12 col-sm-6 col-md-3">
               <label class="field-label notranslate">Alíquota IPI (%) *</label>
@@ -117,8 +135,8 @@
           <q-toggle v-model="form.deduct_icms" label="Deduzir o ICMS do total líquido (somente se aplicável à sua operação)" color="primary" />
           <div><q-toggle v-model="form.add_ipi_to_total" label="Somar o IPI ao total líquido (IPI por fora)" color="primary" /></div>
           <div class="text-caption text-grey-7 q-mt-xs">
-            Valor líquido calculado = bruto {{ form.add_ipi_to_total ? '+ IPI' : '(IPI já incluído / sem adição)' }}{{ form.deduct_icms ? ' − ICMS' : '' }}.
-            Outros valores como frete e descontos ainda não são calculados neste módulo.
+            Valor líquido calculado = bruto − desconto {{ form.add_ipi_to_total ? '+ IPI' : '(IPI já incluído / sem adição)' }}{{ form.deduct_icms ? ' − ICMS' : '' }}.
+            No modo automático: BC IPI = BC ICMS ÷ (1 + alíquota IPI/100); desconto = bruto − BC IPI. Essa igualdade depende da composição da BC ICMS.
           </div>
         </q-card-section>
         <q-separator />
@@ -137,6 +155,16 @@
               {{ match(field.key) ? 'Confere' : 'Divergência' }} — Itens: {{ money(totals[field.key]) }}
             </div>
           </div>
+        </q-card-section>
+        <q-card-section class="q-gutter-sm">
+          <div class="text-h6">Desconto proporcional por produto</div>
+          <div class="text-caption text-grey-7">
+            Alternativa para notas em que a BC ICMS não inclui IPI: informe o total bruto, IPI e total líquido da nota.
+            Para notas sem frete, seguro, outras despesas ou outros acréscimos, o desconto é calculado por:
+            Bruto + IPI − Total da nota. O desconto será distribuído em centavos entre os itens.
+          </div>
+          <q-btn color="primary" outline icon="percent" label="Calcular e distribuir desconto por item" @click="applyProportionalDiscount" />
+          <div class="text-caption text-grey-7">Se houver frete, ICMS-ST, seguro, outras despesas ou descontos não proporcionais, ajuste os descontos e a BC IPI dos itens conforme a NF-e/XML. O cálculo automático é uma aproximação do rateio do documento.</div>
         </q-card-section>
         <q-separator />
         <q-card-section>
@@ -164,7 +192,7 @@ import { computed, onMounted, reactive, ref } from 'vue'
 import { Notify } from 'quasar'
 import { useRoute, useRouter } from 'vue-router'
 import { api } from 'src/boot/axios'
-import { amount, cents, itemTotals, money } from 'src/utils/money'
+import { amount, cents, itemTotals, money, proportionalDiscount } from 'src/utils/money'
 
 const router = useRouter()
 const route = useRoute()
@@ -181,7 +209,8 @@ const ufOptions = Object.entries(ufNames).map(([value, name]) => ({ value, label
 let nextId = 0
 const newItem = () => ({
   _id: ++nextId, sku: '', description: '', cfop: '1102', quantity: 1,
-  unit_price: 0, icms_base: 0, icms_rate: 0, ipi_rate: 0
+  unit_price: 0, discount_amount: 0, ipi_base: '', icms_base: 0, icms_rate: 0, ipi_rate: 0,
+  auto_discount: true
 })
 const currentLocalDate = () => {
   const now = new Date()
@@ -191,23 +220,24 @@ const currentLocalDate = () => {
 const form = reactive({
   issue_date: currentLocalDate(), supplier: '', number: '', city: '', state: 'PR',
   deduct_icms: false, add_ipi_to_total: true,
-  icms_base: 0, icms_total: 0, ipi_total: 0, gross_total: 0, net_total: 0,
+  icms_base: 0, icms_total: 0, ipi_total: 0, gross_total: 0, discount_total: 0, net_total: 0,
   items: [newItem()]
 })
 const totalFields = [
   { key: 'icms_base', label: 'Valor BC ICMS' }, { key: 'icms_total', label: 'Valor ICMS' },
   { key: 'ipi_total', label: 'Valor IPI' }, { key: 'gross_total', label: 'Total bruto' },
+  { key: 'discount_total', label: 'Desconto total' },
   { key: 'net_total', label: 'Total líquido' }
 ]
 const calc = item => itemTotals(item, form)
 const totals = computed(() => form.items.reduce((acc, item) => {
   const values = calc(item)
   acc.icms_base = amount(cents(acc.icms_base) + cents(item.icms_base))
-  for (const key of ['gross_total', 'net_total']) acc[key] = amount(cents(acc[key]) + cents(values[key]))
+  for (const key of ['gross_total', 'discount_total', 'net_total']) acc[key] = amount(cents(acc[key]) + cents(values[key]))
   acc.icms_total = amount(cents(acc.icms_total) + cents(values.icms_amount))
   acc.ipi_total = amount(cents(acc.ipi_total) + cents(values.ipi_amount))
   return acc
-}, { icms_base: '0.00', icms_total: '0.00', ipi_total: '0.00', gross_total: '0.00', net_total: '0.00' }))
+}, { icms_base: '0.00', icms_total: '0.00', ipi_total: '0.00', gross_total: '0.00', discount_total: '0.00', net_total: '0.00' }))
 const match = key => cents(form[key]) === cents(totals.value[key])
 const headerMatches = computed(() => totalFields.every(field => match(field.key)))
 const saving = ref(false)
@@ -219,6 +249,36 @@ function removeItem(index) { if (form.items.length > 1) form.items.splice(index,
 function fillTotals() {
   totalFields.forEach(field => { form[field.key] = Number(totals.value[field.key]) })
 }
+function applyProportionalDiscount() {
+  formErrors.value = []
+  serverError.value = ''
+  const grossValues = form.items.map(item => cents(calc(item).gross_total))
+  const grossSum = grossValues.reduce((sum, value) => sum + value, 0)
+  if (!grossSum || cents(form.gross_total) !== grossSum) {
+    formErrors.value = ['Primeiro informe o Total bruto da nota, igual à soma dos itens.']
+    return
+  }
+  const discountCents = grossSum
+    + (form.add_ipi_to_total ? cents(form.ipi_total) : 0)
+    - (form.deduct_icms ? cents(form.icms_total) : 0)
+    - cents(form.net_total)
+  if (!Number.isSafeInteger(discountCents) || discountCents < 0 || discountCents > grossSum) {
+    formErrors.value = ['Não foi possível obter um desconto válido. Confira o Total bruto, IPI, Total líquido, frete e outras parcelas da nota.']
+    return
+  }
+  try {
+    const portions = proportionalDiscount(grossValues, discountCents)
+    form.items.forEach((item, index) => {
+      item.auto_discount = false // modo rateio usa total da nota, não BC ICMS
+      item.discount_amount = Number(amount(portions[index]))
+      item.ipi_base = '' // base volta a ser bruto menos desconto
+    })
+    form.discount_total = Number(amount(discountCents))
+    Notify.create({type:'positive', message:'Desconto distribuído entre os itens. Confira o IPI de cada produto antes de gravar.'})
+  } catch (exception) {
+    formErrors.value = [exception.message]
+  }
+}
 function inRange(value, min, max, digits) {
   const n = Number(value)
   if (value === '' || value === null || value === undefined || !Number.isFinite(n) || n < min || n > max) return false
@@ -227,7 +287,7 @@ function inRange(value, min, max, digits) {
 function validate() {
   const issues = []
   if (!/^\d{4}-\d{2}-\d{2}$/.test(form.issue_date) || Number.isNaN(Date.parse(form.issue_date))) issues.push('Informe uma data de emissão válida.')
-  if (!String(form.supplier).trim()) issues.push('Informe o fornecedor.')
+  if (!String(form.supplier).trim()) issues.push('Informe o cliente.')
   if (!String(form.number).trim()) issues.push('Informe o número da nota.')
   if (!String(form.city).trim()) issues.push('Informe a cidade.')
   if (!Object.hasOwn(ufNames, form.state)) issues.push('Selecione uma UF válida.')
@@ -238,10 +298,16 @@ function validate() {
     if (!String(item.description).trim()) errors.push('descrição')
     if (!/^\d{4}$/.test(String(item.cfop))) errors.push('CFOP com 4 dígitos')
     if (!inRange(item.quantity, 0.001, 999999, 3)) errors.push('quantidade válida')
-    if (!inRange(item.unit_price, 0.01, 99999999, 2)) errors.push('valor unitário válido')
+    if (!inRange(item.unit_price, 0.0001, 99999999, 4)) errors.push('valor unitário válido')
     if (!inRange(item.icms_base, 0, 999999999999, 2)) errors.push('base ICMS válida')
     if (!inRange(item.icms_rate, 0, 100, 4)) errors.push('alíquota ICMS entre 0 e 100')
     if (!inRange(item.ipi_rate, 0, 100, 4)) errors.push('alíquota IPI entre 0 e 100')
+    if (item.auto_discount) {
+      if (calc(item).auto_discount_error) errors.push(calc(item).auto_discount_error)
+    } else {
+      if (!inRange(item.discount_amount ?? 0, 0, 999999999999, 2) || cents(item.discount_amount) > cents(calc(item).gross_total)) errors.push('desconto do item inválido')
+      if (item.ipi_base !== '' && item.ipi_base !== null && item.ipi_base !== undefined && !inRange(item.ipi_base, 0, 999999999999, 2)) errors.push('BC IPI opcional inválida')
+    }
     if (cents(calc(item).net_total) < 0) errors.push('total líquido não pode ficar negativo')
     if (errors.length) issues.push(`Produto ${index + 1}: confira ${errors.join(', ')}.`)
   }
@@ -262,7 +328,10 @@ async function save() {
       items: form.items.map(item => ({
         sku: item.sku, description: item.description, cfop: item.cfop,
         quantity: item.quantity, unit_price: item.unit_price,
-        icms_base: item.icms_base, icms_rate: item.icms_rate, ipi_rate: item.ipi_rate
+        icms_base: item.icms_base, icms_rate: item.icms_rate, ipi_rate: item.ipi_rate,
+        discount_mode: item.auto_discount ? 'icms_includes_ipi' : 'manual',
+        discount_amount: calc(item).discount_amount,
+        ipi_base: item.auto_discount || item.ipi_base === '' || item.ipi_base === null ? null : item.ipi_base
       }))
     }
     const { data } = editingId
@@ -294,7 +363,9 @@ onMounted(async () => {
     form.items = (data.items || []).map(item => ({
       _id: ++nextId, sku: item.sku, description: item.description, cfop: item.cfop,
       quantity: Number(item.quantity), unit_price: Number(item.unit_price),
-      icms_base: Number(item.icms_base), icms_rate: Number(item.icms_rate), ipi_rate: Number(item.ipi_rate)
+      icms_base: Number(item.icms_base), icms_rate: Number(item.icms_rate), ipi_rate: Number(item.ipi_rate),
+      discount_amount: Number(item.discount_amount ?? 0), auto_discount: false, // preserve notas antigas ao editar
+      ipi_base: item.ipi_base === null || Math.abs(cents(item.ipi_base ?? item.gross_total) - (cents(item.gross_total) - cents(item.discount_amount ?? 0))) < 1 ? '' : Number(item.ipi_base)
     }))
     if (form.items.length === 0) form.items.push(newItem())
   } catch (exception) {

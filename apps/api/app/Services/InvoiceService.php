@@ -11,7 +11,7 @@ class InvoiceService {
     public function create(int $userId,array $data): Invoice {
         $calculated=$this->math->calculate($data['items'], (bool)($data['deduct_icms'] ?? false), (bool)($data['add_ipi_to_total'] ?? true));
         foreach($calculated['totals'] as $field=>$expected) {
-            if ($this->math->parse($data[$field]) !== $this->math->parse($expected)) {
+            if (isset($data[$field]) && $this->math->parse($data[$field]) !== $this->math->parse($expected)) {
                 throw ValidationException::withMessages([$field=>"Total divergente: informado {$data[$field]}, calculado {$expected} pelos itens."]);
             }
         }
@@ -19,7 +19,8 @@ class InvoiceService {
             throw ValidationException::withMessages(['number'=>'Esta nota já está cadastrada para esse fornecedor.']);
         }
         return DB::transaction(function()use($userId,$data,$calculated) {
-            $header=collect($data)->only(['issue_date','supplier','number','city','state','icms_base','icms_total','ipi_total','gross_total','net_total','deduct_icms','add_ipi_to_total'])->all();
+            $header=collect($data)->only(['issue_date','supplier','number','city','state','icms_base','icms_total','ipi_total','gross_total','discount_total','net_total','deduct_icms','add_ipi_to_total'])->all();
+            $header['discount_total'] = $calculated['totals']['discount_total'];
             $header['state']=strtoupper($header['state']);
             $header['deduct_icms']=(bool)($data['deduct_icms'] ?? false);
             $header['add_ipi_to_total']=(bool)($data['add_ipi_to_total'] ?? true);
@@ -35,10 +36,11 @@ class InvoiceService {
             if ($invoice->assessments()->exists()) throw ValidationException::withMessages(['invoice'=>'Nota já apurada: não é permitido alterar.']);
             $calculated=$this->math->calculate($data['items'], (bool)($data['deduct_icms'] ?? false), (bool)($data['add_ipi_to_total'] ?? true));
             foreach($calculated['totals'] as $field=>$expected){
-                if($this->math->parse($data[$field])!==$this->math->parse($expected)) throw ValidationException::withMessages([$field=>'Total divergente: calculado '.$expected]);
+                if(isset($data[$field]) && $this->math->parse($data[$field])!==$this->math->parse($expected)) throw ValidationException::withMessages([$field=>'Total divergente: calculado '.$expected]);
             }
             if(Invoice::query()->where('user_id',$userId)->where('supplier',$data['supplier'])->where('number',$data['number'])->whereKeyNot($id)->exists()) throw ValidationException::withMessages(['number'=>'Nota duplicada.']);
-            $header=collect($data)->only(['issue_date','supplier','number','city','state','icms_base','icms_total','ipi_total','gross_total','net_total'])->all();
+            $header=collect($data)->only(['issue_date','supplier','number','city','state','icms_base','icms_total','ipi_total','gross_total','discount_total','net_total'])->all();
+            $header['discount_total'] = $calculated['totals']['discount_total'];
             $header['state']=strtoupper($header['state']);
             $header['deduct_icms']=(bool)($data['deduct_icms'] ?? false);
             $header['add_ipi_to_total']=(bool)($data['add_ipi_to_total'] ?? true);

@@ -6,7 +6,7 @@
 <div v-if="!notes.length" class="text-grey-7 q-pa-md">Nenhuma nota disponível. Cadastre novas notas ou consulte o histórico.</div>
 <q-list v-else separator><q-item v-for="note in notes" :key="note.id" tag="label"><q-item-section side><q-checkbox :model-value="selected.includes(note.id)" @update:model-value="v=>toggle(note.id,v)" /></q-item-section><q-item-section><q-item-label class="text-weight-medium">NF {{ note.number }} — {{ note.supplier }}</q-item-label><q-item-label caption>Emissão: {{ dateBR(note.issue_date) }}</q-item-label></q-item-section><q-item-section side class="text-right"><div class="text-weight-bold">{{ money(note.gross_total) }}</div><div class="text-caption">ICMS {{ money(note.icms_total) }} · IPI {{ money(note.ipi_total) }}</div></q-item-section></q-item></q-list>
 </q-card-section><q-separator /><q-card-section>
-<q-input outlined dense label="Nome da apuração" v-model.trim="name" placeholder="Ex.: Entradas novembro/2026" class="q-mb-lg" />
+<q-input outlined dense label="Nome da apuração" v-model.trim="name" placeholder="Ex.: Lançamentos novembro/2026" class="q-mb-lg" />
 <div class="row q-col-gutter-md q-mb-md"><div class="col-12 col-sm-4"><div class="metric"><div class="text-caption">Notas selecionadas</div><div class="text-h5 text-weight-bold">{{ selected.length }}</div></div></div><div class="col-12 col-sm-4"><div class="metric"><div class="text-caption">ICMS destacado</div><div class="text-h5 text-weight-bold">{{ money(icms) }}</div></div></div><div class="col-12 col-sm-4"><div class="metric"><div class="text-caption">IPI destacado</div><div class="text-h5 text-weight-bold">{{ money(ipi) }}</div></div></div></div>
 <q-banner v-if="error" class="bg-red-1 text-red-9 q-mb-md">{{error}}</q-banner>
 <div class="row justify-end"><q-btn unelevated color="primary" icon="calculate" label="Apurar impostos" :disable="!selected.length||!name" :loading="saving" @click="assess" /></div>
@@ -19,7 +19,7 @@ import { api } from 'src/boot/axios'
 import { money,dateBR,cents,amount } from 'src/utils/money'
 import { Notify } from 'quasar'
 import { useRouter } from 'vue-router'
-const router=useRouter(),notes=ref([]),selected=ref([]),loading=ref(false),saving=ref(false),error=ref(''),name=ref(`Entradas ${new Date().toLocaleDateString('pt-BR',{month:'long',year:'numeric'})}`)
+const router=useRouter(),notes=ref([]),selected=ref([]),loading=ref(false),saving=ref(false),error=ref(''),name=ref(`Lançamentos ${new Date().toLocaleDateString('pt-BR',{month:'long',year:'numeric'})}`)
 const allSelected=computed({get:()=>notes.value.length>0&&selected.value.length===notes.value.length,set:v=>{selected.value=v?notes.value.map(n=>n.id):[]}})
 const chosen=computed(()=>notes.value.filter(n=>selected.value.includes(n.id)))
 const icms=computed(()=>amount(chosen.value.reduce((a,n)=>a+cents(n.icms_total),0)))
